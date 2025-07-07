@@ -22,7 +22,7 @@ fn build_static_dir(dir_path: &str) {
         .for_each(|entry| {
             let path = entry.unwrap().path();
             if let Some(extension) = path.extension() {
-                if path.extension().unwrap() == "md" || path.extension().unwrap() == "html" {
+                if extension == "md" || extension == "html" {
                     let name = path.file_name().unwrap();
                     //TODO convert md to html, just move html directly
                     let _ = fs::copy(&path, &destination.join(name));
