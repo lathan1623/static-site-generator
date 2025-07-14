@@ -16,6 +16,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
        let mut hotwatch = hotwatch::Hotwatch::new().unwrap(); 
        hotwatch
            .watch(MD, |_| {
+               println!("Detected change in md folder");
                parse_markdown_files(Path::new(MD), Path::new(PUBLIC_DIR)).unwrap();
            })
            .expect("Failed to watch for changes in md folder");
@@ -38,14 +39,18 @@ fn generate_site() {
 }
 
 fn parse_markdown_files(src: &Path, dest: &Path) -> std::io::Result<()> {
+    if fs::exists(dest)? {
+        println!("{:?}", dest);
+        fs::remove_dir_all(dest)?;
+    }
     for entry in fs::read_dir(src)? {
         let entry = entry?;
         let path = entry.path();
-        let relative_path = path.strip_prefix(MD).unwrap();
+        let relative_path = path.file_name().unwrap();
         let target_path = dest.join(relative_path);
         if path.is_dir() {
             fs::create_dir_all(&target_path)?;
-            parse_markdown_files(&path, dest)?;
+            parse_markdown_files(&path, &target_path)?;
         } else if let Some(extension) = path.extension() {
             if extension == MD {
                 let markdown = fs::read_to_string(&path).unwrap();
