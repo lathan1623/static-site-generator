@@ -21,3 +21,12 @@ pub fn create_body(body: &str) -> String {
         body
     )
 }
+
+pub fn create_title(title: &str) -> String {
+    format!(
+        r#"
+        <title>{}</title>
+        "#,
+        title
+    )
+}
