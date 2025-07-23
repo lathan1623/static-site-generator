@@ -39,9 +39,9 @@ fn generate_site(files: Vec<String>, dest: &Path) -> Result<(), Box<dyn Error>> 
     let body = files
         .into_iter()
         .map(|file| {
-            let file = format!(".{}", file.trim_start_matches(dest.to_str().unwrap()));
-            let title = file.trim_start_matches("/").trim_end_matches(".html");
-            format!(r#"<a href="{}">{}</a>"#, file, title)
+            let file = file.trim_start_matches(dest.to_str().unwrap());
+            let title = file.trim_start_matches("/").trim_end_matches(".html").trim_end_matches("index");
+            format!(r#"<a href=".{}">{}</a>"#, file, title)
         })
         .collect::<Vec<String>>()
         .join("<br />\n");
