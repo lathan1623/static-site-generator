@@ -45,7 +45,7 @@ fn generate_site(files: Vec<String>, dest: &Path) -> Result<(), Box<dyn Error>> 
             format!(r#"<a href=".{}">{}</a>"#, file, title)
         })
         .collect::<Vec<String>>()
-        .join("<br />\n");
+        .join("<br/>\n");
     
     html.push_str(templates::create_body(&body).as_str());
     html.push_str(templates::FOOTER);
@@ -80,6 +80,11 @@ fn build_html(src: &Path, dest: &Path) -> Result<(), Box<dyn Error>> {
             generated_file.push_str("/index.html");
             html_files.push(generated_file);
         } else {
+            let extension = path.extension().context("Failed to parse extension from file path")?;
+            if extension == "css" {
+                fs::copy(&path, dest.join(path.file_name().unwrap()))?;
+                continue;
+            }
             let markdown = fs::read_to_string(&path).unwrap();
             let parser = pulldown_cmark::Parser::new_ext(&markdown, pulldown_cmark::Options::all());
 
