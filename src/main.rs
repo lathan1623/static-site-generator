@@ -1,5 +1,6 @@
 use std::{error::Error, fs, path::Path, thread, time::Duration};
 
+use anyhow::Context;
 use axum::Router;
 
 mod templates;
@@ -10,14 +11,14 @@ const HTML: &str = "html";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    parse_markdown_files(Path::new(MD), Path::new(PUBLIC_DIR))?;
+    build_html(Path::new(MD), Path::new(PUBLIC_DIR))?;
     
     tokio::task::spawn_blocking(move || {
        let mut hotwatch = hotwatch::Hotwatch::new().unwrap(); 
        hotwatch
            .watch(MD, |_| {
                println!("Detected change in md folder");
-               parse_markdown_files(Path::new(MD), Path::new(PUBLIC_DIR)).unwrap();
+               build_html(Path::new(MD), Path::new(PUBLIC_DIR)).unwrap();
            })
            .expect("Failed to watch for changes in md folder");
         loop {
@@ -54,8 +55,8 @@ fn generate_site(files: Vec<String>, dest: &Path) -> Result<(), Box<dyn Error>> 
     Ok(())
 }
 
-fn parse_markdown_files(src: &Path, dest: &Path) -> Result<(), Box<dyn Error>> {
-    let mut generated_files: Vec<String> = Vec::new();
+fn build_html(src: &Path, dest: &Path) -> Result<(), Box<dyn Error>> {
+    let mut html_files: Vec<String> = Vec::new();
     if fs::exists(dest)? {
         fs::remove_dir_all(dest)?;
     }
@@ -72,12 +73,12 @@ fn parse_markdown_files(src: &Path, dest: &Path) -> Result<(), Box<dyn Error>> {
 
         if path.is_dir() {
             fs::create_dir_all(&target_path)?;
-            parse_markdown_files(&path, &target_path)?;
+            build_html(&path, &target_path)?;
             // the recursive call to parse_markdown_files() will generate an index.html in the
             // sub-directory
             let mut generated_file = target_path.to_owned().into_os_string().into_string().unwrap();
             generated_file.push_str("/index.html");
-            generated_files.push(generated_file);
+            html_files.push(generated_file);
         } else {
             let markdown = fs::read_to_string(&path).unwrap();
             let parser = pulldown_cmark::Parser::new_ext(&markdown, pulldown_cmark::Options::all());
@@ -85,14 +86,14 @@ fn parse_markdown_files(src: &Path, dest: &Path) -> Result<(), Box<dyn Error>> {
             let mut body = String::new();
             pulldown_cmark::html::push_html(&mut body, parser);
             html.push_str(templates::create_body(&body).as_str());
+            html.push_str(templates::FOOTER);
 
             fs::create_dir_all(html_target.parent().unwrap())?;
             fs::write(&html_target, &html)?;
-            generated_files.push(html_target.into_os_string().into_string().unwrap());
+            html_files.push(html_target.into_os_string().into_string().unwrap());
         }
-        html.push_str(templates::FOOTER);
     }
 
-    generate_site(generated_files, dest)?;
+    generate_site(html_files, dest)?;
     Ok(())
 }
